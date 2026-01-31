@@ -3,291 +3,584 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小说转SillyTavern世界书工具</title>
+    <title>Novel to SillyTavern World Book</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F9FAFB;
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 40px 20px;
+            overflow: hidden;
+            position: relative;
         }
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 600px;
+        
+        .background-blobs {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
         }
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-            text-align: center;
-            font-size: 28px;
+        
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 20s ease-in-out infinite;
         }
-        .subtitle {
-            color: #666;
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 14px;
+        
+        .blob-1 {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
         }
-        .form-group {
-            margin-bottom: 20px;
+        
+        .blob-2 {
+            width: 500px;
+            height: 500px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            bottom: -150px;
+            right: -150px;
+            animation-delay: -5s;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 600;
-            font-size: 14px;
+        
+        .blob-3 {
+            width: 350px;
+            height: 350px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            top: 50%;
+            left: 30%;
+            animation-delay: -10s;
         }
-        select {
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translate(0, 0) scale(1);
+            }
+            25% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+            50% {
+                transform: translate(-20px, 20px) scale(0.95);
+            }
+            75% {
+                transform: translate(20px, 10px) scale(1.05);
+            }
+        }
+        
+        .glass-card {
+            position: relative;
+            z-index: 1;
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s;
+            max-width: 1200px;
+            aspect-ratio: 4/3;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5);
+            display: flex;
+            padding: 60px;
         }
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .checkbox-group {
+        
+        .left-section {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            padding-right: 40px;
+            border-right: 1px solid rgba(229, 231, 235, 0.5);
         }
-        .checkbox-item {
+        
+        .right-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding-left: 40px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #6B7280;
+            margin-bottom: 24px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .main-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1F2937;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .subtitle {
+            font-size: 15px;
+            color: #6B7280;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        
+        .upload-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px dashed #E5E7EB;
+            border-radius: 24px;
+            padding: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.3) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(102, 126, 234, 0.05) 0%, 
+                rgba(118, 75, 162, 0.05) 50%,
+                rgba(240, 147, 251, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .upload-area:hover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.5) 100%);
+        }
+        
+        .upload-area:hover::before {
+            opacity: 1;
+        }
+        
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        
+        .upload-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .upload-icon {
+            width: 72px;
+            height: 72px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
             display: flex;
             align-items: center;
-            cursor: pointer;
-            padding: 10px;
-            border-radius: 8px;
-            transition: background 0.3s;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
         }
-        .checkbox-item:hover {
-            background: #f5f5f5;
+        
+        .upload-icon svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
         }
-        .checkbox-item input {
-            margin-right: 10px;
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        .checkbox-item span {
-            color: #555;
-            font-size: 14px;
-        }
-        .checkbox-item small {
-            color: #888;
-            margin-left: auto;
-            font-size: 12px;
-        }
-        select {
-            max-height: 300px;
-        }
-        .upload-area {
-            border: 2px dashed #667eea;
-            border-radius: 12px;
-            padding: 40px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9ff;
-        }
-        .upload-area:hover {
-            background: #eef0ff;
-            border-color: #5568d3;
-        }
-        .upload-area.dragover {
-            background: #e0e6ff;
-            border-color: #5568d3;
-        }
-        .upload-icon {
-            font-size: 48px;
-            color: #667eea;
-            margin-bottom: 15px;
-        }
+        
         .upload-text {
-            color: #667eea;
             font-size: 16px;
             font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 8px;
         }
+        
         .upload-hint {
-            color: #999;
-            font-size: 12px;
-            margin-top: 5px;
+            font-size: 13px;
+            color: #9CA3AF;
         }
+        
         #fileInput {
             display: none;
         }
+        
         .selected-file {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f0f0f0;
-            border-radius: 8px;
+            margin-top: 20px;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(229, 231, 235, 0.8);
             display: none;
+            width: 100%;
         }
+        
         .selected-file.active {
             display: block;
         }
+        
         .file-name {
-            color: #333;
+            color: #1F2937;
             font-weight: 600;
-            margin-bottom: 5px;
+            font-size: 14px;
+            margin-bottom: 4px;
+            word-break: break-all;
         }
+        
         .file-info {
-            color: #666;
+            color: #6B7280;
             font-size: 12px;
         }
-        button {
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        select, input[type="text"] {
             width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            padding: 12px 16px;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            font-size: 14px;
+            color: #1F2937;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            transition: all 0.3s;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        select:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s;
-            margin-top: 20px;
         }
-        button:hover {
+        
+        .checkbox-item:hover {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #D1D5DB;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-right: 12px;
+            margin-top: 2px;
+            accent-color: #667eea;
+            cursor: pointer;
+        }
+        
+        .checkbox-content {
+            flex: 1;
+        }
+        
+        .checkbox-item span {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+            display: block;
+        }
+        
+        .checkbox-item small {
+            color: #9CA3AF;
+            font-size: 12px;
+            display: block;
+            margin-top: 4px;
+        }
+        
+        .buttons-container {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 12px 35px rgba(102, 126, 234, 0.5);
         }
-        button:disabled {
-            background: #ccc;
+        
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+            display: none;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(17, 153, 142, 0.5);
+        }
+        
+        .btn-success.active {
+            display: block;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
+            transform: none !important;
         }
-        button.download-btn {
-            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
-            margin-top: 10px;
-            display: none;
-        }
-        button.download-btn:hover {
-            box-shadow: 0 10px 20px rgba(86, 171, 47, 0.4);
-        }
-        button.download-btn.active {
-            display: block;
-        }
-        .result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 8px;
-            display: none;
-        }
-        .result.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-            border: 1px solid #c3e6cb;
-        }
-        .result.error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
-            border: 1px solid #f5c6cb;
-            white-space: pre-wrap;
-            word-break: break-word;
-        }
+        
         .loading {
             display: none;
-            text-align: center;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
             margin-top: 20px;
+            padding: 16px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 12px;
         }
+        
         .loading.active {
-            display: block;
+            display: flex;
         }
+        
         .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+            border-top-color: #667eea;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            animation: spin 0.8s linear infinite;
         }
+        
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
+        
         .loading-text {
             color: #667eea;
             font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            display: none;
+            font-size: 14px;
+        }
+        
+        .result.success {
+            background: rgba(34, 197, 94, 0.1);
+            color: #16a34a;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            display: block;
+        }
+        
+        .result.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: block;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        @media (max-width: 1024px) {
+            .glass-card {
+                flex-direction: column;
+                height: auto;
+                aspect-ratio: auto;
+                padding: 40px;
+            }
+            
+            .left-section {
+                padding-right: 0;
+                border-right: none;
+                border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+                padding-bottom: 40px;
+                margin-bottom: 40px;
+            }
+            
+            .right-section {
+                padding-left: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>小说转SillyTavern世界书</h1>
-        <p class="subtitle">将小说、剧集等文本资源转换为SillyTavern世界书格式</p>
-
-        <div class="upload-area" id="uploadArea">
-            <div class="upload-icon">📄</div>
-            <div class="upload-text">点击或拖拽文件到此处上传</div>
-            <div class="upload-hint">支持 .txt 文件</div>
-        </div>
-        <input type="file" id="fileInput" accept=".txt">
-
-        <div class="selected-file" id="selectedFile">
-            <div class="file-name" id="fileName"></div>
-            <div class="file-info" id="fileInfo"></div>
-        </div>
-
-        <div class="form-group">
-            <label>文件编码</label>
-            <select id="encoding">
-                <option value="utf-8">UTF-8 (推荐)</option>
-                <option value="gbk">GBK</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>章节识别规则</label>
-            <select id="pattern">
-                <option value="auto">自动识别（推荐）</option>
-                <option value="legacy">旧版规则</option>
-            </select>
-        </div>
-
-        <div class="checkbox-group">
-            <label class="checkbox-item">
-                <input type="checkbox" id="force">
-                <span>强制忽略章节编号不连续</span>
-                <small>即使编号不连续也继续处理</small>
-            </label>
-            <label class="checkbox-item">
-                <input type="checkbox" id="preview">
-                <span>启用下回预告功能</span>
-                <small>激活当前原文和下一篇的原文</small>
-            </label>
-        </div>
-
-        <button id="convertBtn" disabled>开始转换</button>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <div class="loading-text">正在处理中...</div>
-        </div>
-
-        <div class="result" id="result"></div>
-
-        <button class="download-btn" id="downloadBtn">下载世界书</button>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
     </div>
-
+    
+    <div class="glass-card">
+        <div class="left-section">
+            <h1 class="main-title">Novel to World Book</h1>
+            <p class="subtitle">将小说、剧集等文本资源转换为 SillyTavern 世界书格式</p>
+            
+            <div class="section-title">Upload</div>
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-content">
+                    <div class="upload-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                        </svg>
+                    </div>
+                    <div class="upload-text">点击或拖拽文件到此处上传</div>
+                    <div class="upload-hint">支持 .txt 文件</div>
+                </div>
+            </div>
+            <input type="file" id="fileInput" accept=".txt">
+            
+            <div class="selected-file" id="selectedFile">
+                <div class="file-name" id="fileName"></div>
+                <div class="file-info" id="fileInfo"></div>
+            </div>
+        </div>
+        
+        <div class="right-section">
+            <div class="section-title">Options</div>
+            
+            <div class="form-group">
+                <label>文件编码</label>
+                <select id="encoding">
+                    <option value="utf-8">UTF-8 (推荐)</option>
+                    <option value="gbk">GBK</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>章节识别规则</label>
+                <select id="pattern">
+                    <option value="auto">自动识别（推荐）</option>
+                    <option value="legacy">旧版规则</option>
+                </select>
+            </div>
+            
+            <div class="checkbox-group">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="force">
+                    <div class="checkbox-content">
+                        <span>强制忽略章节编号不连续</span>
+                        <small>即使编号不连续也继续处理</small>
+                    </div>
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="preview">
+                    <div class="checkbox-content">
+                        <span>启用下回预告功能</span>
+                        <small>激活当前原文和下一篇的原文</small>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="buttons-container">
+                <button class="btn btn-primary" id="convertBtn" disabled>开始转换</button>
+                
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <span class="loading-text">正在处理中...</span>
+                </div>
+                
+                <div class="result" id="result"></div>
+                
+                <div class="form-group" id="filenameGroup" style="display: none;">
+                    <label>📝 自定义世界书名称（可选）</label>
+                    <input type="text" id="customFilename" placeholder="留空则使用默认名称：文件名_世界书.json">
+                </div>
+                
+                <button class="btn btn-success" id="downloadBtn">下载世界书</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
@@ -300,7 +593,7 @@
         const loading = document.getElementById('loading');
         const patternSelect = document.getElementById('pattern');
         let currentOutputFileName = '世界书.json';
-
+        
         async function loadRules() {
             try {
                 const response = await fetch('/api/rules');
@@ -321,20 +614,20 @@
                 showError('加载章节识别规则失败，请刷新页面重试');
             }
         }
-
+        
         loadRules();
-
+        
         uploadArea.addEventListener('click', () => fileInput.click());
-
+        
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.classList.add('dragover');
         });
-
+        
         uploadArea.addEventListener('dragleave', () => {
             uploadArea.classList.remove('dragover');
         });
-
+        
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
@@ -343,19 +636,19 @@
                 handleFile(files[0]);
             }
         });
-
+        
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFile(e.target.files[0]);
             }
         });
-
+        
         function handleFile(file) {
             if (!file.name.endsWith('.txt')) {
                 showError('请上传 .txt 文件');
                 return;
             }
-
+            
             fileName.textContent = file.name;
             fileInfo.textContent = `${(file.size / 1024).toFixed(2)} KB`;
             selectedFile.classList.add('active');
@@ -363,59 +656,54 @@
             downloadBtn.classList.remove('active');
             result.className = 'result';
         }
-
+        
         function showError(message) {
             result.textContent = message;
             result.className = 'result error';
-            setTimeout(() => result.className = 'result', 3000);
+            setTimeout(() => result.className = 'result', 5000);
         }
-
+        
         function showSuccess(message) {
             result.textContent = message;
             result.className = 'result success';
+            document.getElementById('filenameGroup').style.display = 'block';
         }
-
+        
         convertBtn.addEventListener('click', async () => {
             const file = fileInput.files[0];
             if (!file) {
                 showError('请先上传文件');
                 return;
             }
-
+            
             const formData = new FormData();
             formData.append('file', file);
             formData.append('encoding', document.getElementById('encoding').value);
             formData.append('pattern', document.getElementById('pattern').value);
             formData.append('force', document.getElementById('force').checked);
             formData.append('preview', document.getElementById('preview').checked);
-
+            
             loading.classList.add('active');
             convertBtn.disabled = true;
             result.className = 'result';
-
+            
             try {
                 const response = await fetch('/api/convert', {
                     method: 'POST',
                     body: formData
                 });
-
+                
                 const data = await response.json();
-
+                
                 if (response.ok) {
                     let successMsg = `转换成功！共处理 ${data.chapters} 章`;
                     if (data.outputFileName) {
                         currentOutputFileName = data.outputFileName;
                     }
-                    // if (data.debug) {
-                    //     successMsg += '\n\n调试信息：\n' + data.debug;
-                    // }
                     showSuccess(successMsg);
                     downloadBtn.classList.add('active');
                 } else {
                     let errorMsg = data.error || '转换失败';
-                    // if (data.debug) {
-                    //     errorMsg += '\n\n' + data.debug;
-                    // }
                     showError(errorMsg);
                 }
             } catch (error) {
@@ -425,9 +713,11 @@
                 convertBtn.disabled = false;
             }
         });
-
+        
         downloadBtn.addEventListener('click', () => {
-            window.location.href = `/api/download?file=${encodeURIComponent(currentOutputFileName)}`;
+            const customFilename = document.getElementById('customFilename').value.trim();
+            const filename = customFilename ? `${customFilename}.json` : currentOutputFileName;
+            window.location.href = `/api/download?file=${encodeURIComponent(currentOutputFileName)}&customName=${encodeURIComponent(filename)}`;
         });
     </script>
 </body>

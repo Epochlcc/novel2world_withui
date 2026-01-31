@@ -1,9 +1,11 @@
 *.json
 !世界书_头.json
 !package.json
+!exportTxtTocRule.json
 
 *.txt
 node_modules/
 .DS_Store
 .vscode/
 backup/
+uploads/

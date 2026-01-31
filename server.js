@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const NovelProcessor = require('./novelProcessor');
+const iconv = require('iconv-lite');
 
 // ==================== 调试信息说明 ====================
 // 默认情况下，调试信息已注释，只显示简单的成功/失败消息
@@ -23,7 +24,13 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+        const timestamp = Date.now();
+        try {
+            const decodedName = iconv.decode(Buffer.from(file.originalname, 'binary'), 'utf-8');
+            cb(null, `${timestamp}-${decodedName}`);
+        } catch (e) {
+            cb(null, `${timestamp}-${file.originalname}`);
+        }
     }
 });
 
@@ -57,9 +64,17 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: '请上传文件' });
         }
 
+        let originalName = req.file.originalname;
+        try {
+            const decodedName = iconv.decode(Buffer.from(req.file.originalname, 'binary'), 'utf-8');
+            originalName = decodedName;
+        } catch (e) {
+            console.log('文件名解码失败，使用原始文件名');
+        }
+
         const processor = new NovelProcessor();
         processor.setPattern(pattern);
-        const result = await processor.processNovel(req.file.path, req.file.originalname, encoding, force, preview);
+        const result = await processor.processNovel(req.file.path, originalName, encoding, force, preview);
 
         res.json({
             success: true,
@@ -78,9 +93,12 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
 app.get('/api/download', async (req, res) => {
     try {
         const fileName = req.query.file || '世界书.json';
+        const customName = req.query.customName || fileName;
         const filePath = path.join(__dirname, fileName);
         await fs.access(filePath);
-        res.download(filePath, fileName);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(customName)}`);
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.sendFile(filePath);
     } catch (error) {
         res.status(404).json({ error: '文件不存在' });
     }
