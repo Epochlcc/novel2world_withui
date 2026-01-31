@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小说转SillyTavern世界书工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .checkbox-item:hover {
+            background: #f5f5f5;
+        }
+        .checkbox-item input {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .checkbox-item span {
+            color: #555;
+            font-size: 14px;
+        }
+        .checkbox-item small {
+            color: #888;
+            margin-left: auto;
+            font-size: 12px;
+        }
+        select {
+            max-height: 300px;
+        }
+        .upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9ff;
+        }
+        .upload-area:hover {
+            background: #eef0ff;
+            border-color: #5568d3;
+        }
+        .upload-area.dragover {
+            background: #e0e6ff;
+            border-color: #5568d3;
+        }
+        .upload-icon {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        .upload-text {
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .upload-hint {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        #fileInput {
+            display: none;
+        }
+        .selected-file {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            display: none;
+        }
+        .selected-file.active {
+            display: block;
+        }
+        .file-name {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .file-info {
+            color: #666;
+            font-size: 12px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        button.download-btn {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+            margin-top: 10px;
+            display: none;
+        }
+        button.download-btn:hover {
+            box-shadow: 0 10px 20px rgba(86, 171, 47, 0.4);
+        }
+        button.download-btn.active {
+            display: block;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+            border: 1px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block;
+            border: 1px solid #f5c6cb;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #667eea;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>小说转SillyTavern世界书</h1>
+        <p class="subtitle">将小说、剧集等文本资源转换为SillyTavern世界书格式</p>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📄</div>
+            <div class="upload-text">点击或拖拽文件到此处上传</div>
+            <div class="upload-hint">支持 .txt 文件</div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt">
+
+        <div class="selected-file" id="selectedFile">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-info" id="fileInfo"></div>
+        </div>
+
+        <div class="form-group">
+            <label>文件编码</label>
+            <select id="encoding">
+                <option value="utf-8">UTF-8 (推荐)</option>
+                <option value="gbk">GBK</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>章节识别规则</label>
+            <select id="pattern">
+                <option value="auto">自动识别（推荐）</option>
+                <option value="legacy">旧版规则</option>
+            </select>
+        </div>
+
+        <div class="checkbox-group">
+            <label class="checkbox-item">
+                <input type="checkbox" id="force">
+                <span>强制忽略章节编号不连续</span>
+                <small>即使编号不连续也继续处理</small>
+            </label>
+            <label class="checkbox-item">
+                <input type="checkbox" id="preview">
+                <span>启用下回预告功能</span>
+                <small>激活当前原文和下一篇的原文</small>
+            </label>
+        </div>
+
+        <button id="convertBtn" disabled>开始转换</button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div class="loading-text">正在处理中...</div>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <button class="download-btn" id="downloadBtn">下载世界书</button>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const fileInfo = document.getElementById('fileInfo');
+        const convertBtn = document.getElementById('convertBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const result = document.getElementById('result');
+        const loading = document.getElementById('loading');
+        const patternSelect = document.getElementById('pattern');
+        let currentOutputFileName = '世界书.json';
+
+        async function loadRules() {
+            try {
+                const response = await fetch('/api/rules');
+                const data = await response.json();
+                if (data.rules && data.rules.length > 0) {
+                    console.log(`加载了 ${data.rules.length} 条规则`);
+                    data.rules.forEach(rule => {
+                        const option = document.createElement('option');
+                        option.value = rule.serialNumber;
+                        option.textContent = `${rule.name} - ${rule.example}`;
+                        patternSelect.appendChild(option);
+                    });
+                } else {
+                    console.log('未加载到规则');
+                }
+            } catch (error) {
+                console.error('加载规则失败:', error);
+                showError('加载章节识别规则失败，请刷新页面重试');
+            }
+        }
+
+        loadRules();
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.txt')) {
+                showError('请上传 .txt 文件');
+                return;
+            }
+
+            fileName.textContent = file.name;
+            fileInfo.textContent = `${(file.size / 1024).toFixed(2)} KB`;
+            selectedFile.classList.add('active');
+            convertBtn.disabled = false;
+            downloadBtn.classList.remove('active');
+            result.className = 'result';
+        }
+
+        function showError(message) {
+            result.textContent = message;
+            result.className = 'result error';
+            setTimeout(() => result.className = 'result', 3000);
+        }
+
+        function showSuccess(message) {
+            result.textContent = message;
+            result.className = 'result success';
+        }
+
+        convertBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                showError('请先上传文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('encoding', document.getElementById('encoding').value);
+            formData.append('pattern', document.getElementById('pattern').value);
+            formData.append('force', document.getElementById('force').checked);
+            formData.append('preview', document.getElementById('preview').checked);
+
+            loading.classList.add('active');
+            convertBtn.disabled = true;
+            result.className = 'result';
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let successMsg = `转换成功！共处理 ${data.chapters} 章`;
+                    if (data.outputFileName) {
+                        currentOutputFileName = data.outputFileName;
+                    }
+                    // if (data.debug) {
+                    //     successMsg += '\n\n调试信息：\n' + data.debug;
+                    // }
+                    showSuccess(successMsg);
+                    downloadBtn.classList.add('active');
+                } else {
+                    let errorMsg = data.error || '转换失败';
+                    // if (data.debug) {
+                    //     errorMsg += '\n\n' + data.debug;
+                    // }
+                    showError(errorMsg);
+                }
+            } catch (error) {
+                showError('网络错误，请重试');
+            } finally {
+                loading.classList.remove('active');
+                convertBtn.disabled = false;
+            }
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            window.location.href = `/api/download?file=${encodeURIComponent(currentOutputFileName)}`;
+        });
+    </script>
+</body>
+</html>

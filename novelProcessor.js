@@ -5,6 +5,40 @@ const path = require('path');
 class NovelProcessor {
     constructor() {
         this.chapters = [];
+        this.patternType = 'auto';
+        // this.debugInfo = '';  // 调试信息已注释，如需调试请取消注释
+        this.tocRules = [];
+        this.rulesLoaded = false;
+        this.outputFileName = '';
+    }
+
+    // ==================== 调试信息说明 ====================
+    // 如需查看详细调试信息，请取消以下注释：
+    // 1. 本文件第9行: this.debugInfo = '';
+    // 2. 本文件所有 this.debugInfo += 的注释
+    // 3. server.js 第57行: debug: processor.debugInfo
+    // 4. server.js 第61行: debug: error.debugInfo || ''
+    // 5. public/index.html 第405-407行: successMsg += '\n\n调试信息：\n' + data.debug;
+    // 6. public/index.html 第412-414行: errorMsg += '\n\n' + data.debug;
+    // ===================================================
+
+    async loadTocRules() {
+        try {
+            const rulePath = path.join(__dirname, 'exportTxtTocRule.json');
+            const ruleContent = await fs.readFile(rulePath, 'utf-8');
+            const rules = JSON.parse(ruleContent);
+            this.tocRules = rules.filter(r => r.enable === true);
+            this.rulesLoaded = true;
+            console.log(`成功加载 ${this.tocRules.length} 条章节识别规则`);
+        } catch (error) {
+            console.error('加载目录规则失败:', error.message);
+            this.tocRules = [];
+            this.rulesLoaded = false;
+        }
+    }
+
+    setPattern(type) {
+        this.patternType = type;
     }
 
     /**
@@ -54,34 +88,90 @@ class NovelProcessor {
      * 按章节分割小说内容
      */
     splitIntoChapters(content, force = false) {
-        // 通用章节分割：遍历所有正则，收集所有章节起始点
-        const splitPatterns = [
-            // 第n章 章节名（支持空格/全角空格/无空格）
-            { pattern: /^第([零一二三四五六七八九十百千\d]+)章[　\s]+(.+)$/gm, type: 'zhfull' },
-            // 第n章（无标题）
-            { pattern: /^第([零一二三四五六七八九十百千\d]+)章/gm, type: 'zh' },
-            // 英文
-            { pattern: /^Chapter (\d+)\s*(.*)$/gim, type: 'en' },
-            // 数字. 标题
-            { pattern: /^(\d+)\.\s*(.+)$/gm, type: 'dotnum' }
-        ];
+        let splitPatterns;
+
+        if (this.tocRules.length === 0) {
+            throw new Error('未加载到目录规则，请检查 exportTxtTocRule.json 文件');
+        }
+
+        if (this.patternType === 'auto') {
+            splitPatterns = this.tocRules;
+            // this.debugInfo = `使用自动识别模式，尝试 ${splitPatterns.length} 种规则...\n`;
+        } else if (this.patternType === 'legacy') {
+            const allPatterns = [
+                { pattern: /^[ \t]*第(\d+)章[：:\s]*(.*)$/gm, type: 'zhnumcolon', name: '第n章：标题' },
+                { pattern: /^[ \t]*第([零一二三四五六七八九十百千\d]+)章[　\s]*(.*)$/gm, type: 'zhfull', name: '第n章 标题' },
+                { pattern: /^[ \t]*第([零一二三四五六七八九十百千\d]+)章[　\s]*$/gm, type: 'zh', name: '第n章' },
+                { pattern: /^[ \t]*第([零一二三四五六七八九十百千\d]+)回[　\s]*(.*)$/gm, type: 'zhuihui', name: '第n回 标题' },
+                { pattern: /^[ \t]*Chapter\s*(\d+)[\s\.:]*(.*)$/gim, type: 'en', name: 'Chapter n 标题' },
+                { pattern: /^[ \t]*(\d+)[\.\:、　\s]+(.+)$/gm, type: 'dotnum', name: '数字. 标题' },
+                { pattern: /^[ \t]*【第([零一二三四五六七八九十百千\d]+)章】[　\s]*(.*)$/gm, type: 'zhbracket', name: '【第n章】标题' },
+                { pattern: /^[ \t]*【(\d+)】[　\s]*(.*)$/gm, type: 'numbracket', name: '【n】标题' },
+                { pattern: /^[ \t]*(第[零一二三四五六七八九十百千\d]+\s*[卷篇部])[　\s]*(.*)$/gm, type: 'volume', name: '第n卷/篇/部 标题' }
+            ];
+            splitPatterns = allPatterns;
+            // this.debugInfo = '使用旧版规则...\n';
+        } else {
+            const ruleIndex = parseInt(this.patternType);
+            splitPatterns = this.tocRules.filter(r => r.serialNumber === ruleIndex);
+            // this.debugInfo = `使用规则: ${splitPatterns[0]?.name || '未知'}\n`;
+            // if (splitPatterns.length > 0) {
+            //     this.debugInfo += `示例: ${splitPatterns[0].example}\n`;
+            // }
+        }
+
         let points = [];
-        for (const { pattern, type } of splitPatterns) {
+        // let matchDetails = [];
+
+        for (const rule of splitPatterns) {
+            const pattern = new RegExp(rule.rule, 'gm');
             let m;
+            let matchCount = 0;
+            pattern.lastIndex = 0;
             while ((m = pattern.exec(content)) !== null) {
                 points.push({
                     index: m.index,
                     match: m[0],
-                    type,
-                    groups: m
+                    type: rule.serialNumber,
+                    groups: m,
+                    ruleName: rule.name
                 });
+                matchCount++;
+                // if (matchCount <= 5) {
+                //     matchDetails.push(`\n  规则"${rule.name}"匹配: "${m[0].substring(0, 50)}${m[0].length > 50 ? '...' : ''}"`);
+                // }
+            }
+            if (matchCount > 0) {
+                // this.debugInfo += `规则"${rule.name}"匹配到 ${matchCount} 处${matchCount > 5 ? '，显示前5处' : ''}：${matchDetails.slice(0, 5).join('')}\n`;
             }
         }
+
+        if (this.patternType === 'auto') {
+            // this.debugInfo += `\n总计匹配到 ${points.length} 处章节标记\n`;
+        }
+
+        if (points.length < 1) {
+            let errorMsg = '未检测到章节标记，无法分割章节。\n\n';
+            // errorMsg += '调试信息：\n';
+            // errorMsg += this.debugInfo || '无调试信息';
+            errorMsg += '\n建议：\n';
+            errorMsg += '1. 检查章节标题是否在行首\n';
+            errorMsg += '2. 尝试选择具体的章节格式\n';
+            errorMsg += '3. 检查文件编码是否正确（UTF-8 或 GBK）\n';
+            errorMsg += '4. 查看txt文件的章节格式，选择匹配的规则\n';
+            if (this.tocRules.length === 0) {
+                errorMsg += '5. 规则文件未加载，请检查 exportTxtTocRule.json\n';
+            }
+            const err = new Error('未检测到章节标记');
+            err.debugInfo = errorMsg;
+            throw err;
+        }
+
+        // this.debugInfo += `开始分割 ${points.length} 个章节...\n`;
+
         // 按 index 升序去重（同一位置只保留第一个）
         points = points.sort((a, b) => a.index - b.index).filter((p, i, arr) => i === 0 || p.index !== arr[i - 1].index);
-        if (points.length < 1) {
-            throw new Error('未检测到章节标记，无法分割章节，请检查小说文本格式。');
-        }
+        // this.debugInfo += `去重后剩余 ${points.length} 个章节\n`;
         // 切分章节
         let chapters = [];
         // 中文数字转阿拉伯数字
@@ -105,24 +195,37 @@ class NovelProcessor {
         for (let i = 0; i < points.length; i++) {
             const start = points[i].index;
             const end = i < points.length - 1 ? points[i + 1].index : content.length;
-            const rawTitle = points[i].match;
+            const rawTitle = points[i].match.trim();
             let title = rawTitle;
             let idx = i + 1;
-            if (points[i].type === 'zhfull') {
-                // groups: [全匹配, 编号, 标题]
+            if (points[i].type === 'zhnumcolon') {
+                title = points[i].groups[2].replace(/[　\s]+$/, '');
+                idx = parseInt(points[i].groups[1], 10);
+            } else if (points[i].type === 'zhfull') {
                 title = points[i].groups[2].replace(/[　\s]+$/, '');
                 idx = cn2num(points[i].groups[1]);
+            } else if (points[i].type === 'zhuihui') {
+                title = points[i].groups[2].replace(/[　\s]+$/, '');
+                idx = cn2num(points[i].groups[1]);
+            } else if (points[i].type === 'zhbracket') {
+                title = points[i].groups[2].replace(/[　\s]+$/, '');
+                idx = cn2num(points[i].groups[1]);
+            } else if (points[i].type === 'zh') {
+                idx = cn2num(points[i].groups[1]);
+                title = '';
+            } else if (points[i].type === 'numbracket') {
+                title = points[i].groups[2].replace(/[　\s]+$/, '');
+                idx = parseInt(points[i].groups[1], 10);
             } else if (points[i].type === 'dotnum') {
                 let cnTitle = points[i].groups[2].split('（')[0].trim();
                 title = cnTitle;
                 idx = parseInt(points[i].groups[1], 10);
-            } else if (points[i].type === 'zh') {
-                // 只有“第n章”无标题
-                idx = cn2num(points[i].groups[1]);
-                title = '';
             } else if (points[i].type === 'en') {
                 title = points[i].groups[2].replace(/[　\s]+$/, '');
                 idx = parseInt(points[i].groups[1], 10);
+            } else if (points[i].type === 'volume') {
+                title = points[i].groups[2].replace(/[　\s]+$/, '');
+                idx = cn2num(points[i].groups[1].replace(/[卷篇部]/, ''));
             }
             chapters.push({
                 title,
@@ -146,9 +249,15 @@ class NovelProcessor {
             expected++;
         }
         if (validChapters.length === 0) {
-            throw new Error('章节分割失败，未能保留任何有效章节。');
+            let errorMsg = '章节分割失败，未能保留任何有效章节。\n\n';
+            // errorMsg += '调试信息：\n';
+            // errorMsg += this.debugInfo;
+            const err = new Error('章节分割失败');
+            err.debugInfo = errorMsg;
+            throw err;
         }
         chapters = validChapters;
+        // this.debugInfo += `成功分割为 ${chapters.length} 个章节\n`;
         console.log(`成功分割为 ${chapters.length} 个章节`);
         return chapters;
     }
@@ -158,9 +267,16 @@ class NovelProcessor {
     /**
      * 主处理函数
      */
-    async processNovel(filePath, encoding = 'utf-8', force = false, preview = false) {
+    async processNovel(filePath, originalFileName, encoding = 'utf-8', force = false, preview = false) {
         try {
             console.log('开始处理小说...');
+            // 0. 确保规则已加载
+            if (!this.rulesLoaded) {
+                await this.loadTocRules();
+            }
+            if (this.tocRules.length === 0 && this.patternType !== 'legacy') {
+                throw new Error('未加载到目录规则，请检查 exportTxtTocRule.json 文件');
+            }
             // 1. 读取文件
             const content = await this.readNovelFile(filePath, encoding);
             // 2. 分割章节
@@ -250,7 +366,10 @@ class NovelProcessor {
                 }
             }
             const output = { entries };
-            const outputFile = `世界书.json`;
+            // 生成输出文件名：原文件名_世界书.json（去掉.txt扩展名）
+            const baseName = path.basename(originalFileName, path.extname(originalFileName));
+            const outputFile = `${baseName}_世界书.json`;
+            this.outputFileName = outputFile;
             await fs.writeFile(outputFile, JSON.stringify(output, null, 2), 'utf-8');
             console.log(`处理完成！结果已保存到: ${outputFile}`);
             return output;
@@ -297,3 +416,6 @@ async function main() {
 if (require.main === module) {
     main();
 }
+
+module.exports = NovelProcessor;
+
