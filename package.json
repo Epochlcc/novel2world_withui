@@ -1,19 +1,36 @@
 {
-  "name": "novel-plot-processor",
+  "name": "novel2world",
   "version": "1.0.0",
-  "description": "Process novels and generate plot nodes for interactive reading",
-  "main": "novelProcessor.js",
+  "description": "Convert novels and other media to SillyTavern World Book format with WebUI",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "cli": "node novelProcessor.js"
+    "cli": "node novelProcessor.js",
+    "build": "pkg . --targets node18-win-x64,node18-macos-x64,node18-linux-x64 --output dist/novel2world"
   },
   "dependencies": {
     "cheerio": "^1.1.2",
     "express": "^5.2.1",
     "iconv-lite": "^0.6.3",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "open": "^8.4.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
   },
   "engines": {
     "node": ">=14.0.0"
+  },
+  "pkg": {
+    "assets": [
+      "public/**/*",
+      "exportTxtTocRule.json"
+    ],
+    "targets": [
+      "node18-win-x64",
+      "node18-macos-x64",
+      "node18-linux-x64"
+    ],
+    "outputPath": "dist"
   }
 }
