@@ -1,27 +1,71 @@
 const fs = require('fs');
 
-const testContent = `　　第129章：侠客与拳师
-　　＊＊＊　　＊＊＊　　＊＊＊
-　　第129章：侠客与拳师＊＊　　＊＊＊
-　　第129章：侠客与拳师
-　　当自动门关上的一刻，松岛宏就意识到了什么，开口道："我听说在古老的时代，哺乳动物的幼儿在取食母乳的时候，绝对不会让母亲感到疼痛，就好像侠客绝对不会将剑指向民众一样。您强横内力随身，今天却来找我一个普通武师的麻烦。这难道不是不合理的吗？"
+const rules = JSON.parse(fs.readFileSync('./exportTxtTocRule.json', 'utf-8')).filter(r => r.enable && r.rule);
 
-　　第130章：隐形的根据地
-　　＊＊＊　　＊＊＊　　＊＊＊
-　　第130章：隐形的根据地
-"说实话，我还是很疑惑这个问题的。"向山翘起二郎腿`;
+const testTitles = [
+    "第一章 假装第一章前面有空白但我不要",
+    "第一章 标准的粤语就是这样",
+    "1、这个就是标题",
+    "一、只有前面的数字有差别",
+    "正文 我奶常山赵子龙",
+    "Chapter 1 MyGrandmaIsNB",
+    "【第一章 后面的符号可以没有",
+    "☆、晋江作者最喜欢的格式",
+    "卷五 开源盛世",
+    "标题后面数字有括号(12)",
+    "标题后面数字没有括号124",
+    "分节阅读 第一页",
+    "第129章：侠客与拳师",
+    "第130章 隐形的根据地",
+    "第一回 章节名",
+    "序章 开篇",
+    "后记 结束语",
+    "番外 番外故事",
+    "楔子 故事背景",
+    "终章 最终章",
+    "尾声 故事结束",
+    "简介 老夫诸葛村夫"
+];
 
-const rule = "^[ 　\\t]{0,4}(?:序章|楔子|正文(?!完|结)|终章|后记|尾声|番外|第\\s{0,4}[\\d〇零一二两三四五六七八九十百千万壹贰叁肆伍陆柒捌玖拾佰仟]+?\\s{0,4}(?:章|节(?!课)|卷|集(?![合和])|部(?![分赛游])|篇(?!张))).{0,30}$";
+console.log('='.repeat(80));
+console.log('章节标题正则表达式测试');
+console.log('='.repeat(80));
+console.log(`共加载 ${rules.length} 条规则\n`);
 
-const pattern = new RegExp(rule, 'gm');
-let m;
-let count = 0;
+rules.forEach(ruleData => {
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`规则名称: ${ruleData.name}`);
+    console.log(`规则ID: ${ruleData.id}`);
+    console.log(`示例: ${ruleData.example}`);
+    console.log(`${'='.repeat(80)}\n`);
 
-pattern.lastIndex = 0;
-while ((m = pattern.exec(testContent)) !== null) {
-    console.log(`匹配 ${++count}: "${m[0]}"`);
-    console.log(`  位置: ${m.index}`);
-    console.log(`  捕获组:`, m.slice(1));
-}
+    let matchCount = 0;
+    const matches = [];
 
-console.log(`\n总计匹配: ${count} 处`);
+    try {
+        const pattern = new RegExp(ruleData.rule, 'gm');
+        
+        testTitles.forEach(title => {
+            const match = title.match(pattern);
+            if (match) {
+                matchCount++;
+                matches.push(title);
+            }
+        });
+
+        if (matchCount > 0) {
+            console.log(`✓ 匹配成功: ${matchCount}/${testTitles.length} 个标题`);
+            matches.forEach((match, i) => {
+                console.log(`  ${i + 1}. ${match}`);
+            });
+        } else {
+            console.log(`✗ 匹配失败: 0/${testTitles.length} 个标题`);
+        }
+    } catch (error) {
+        console.log(`✗ 正则表达式错误: ${error.message}`);
+    }
+});
+
+console.log(`\n${'='.repeat(80)}`);
+console.log('测试完成');
+console.log('='.repeat(80));
