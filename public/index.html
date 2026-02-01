@@ -559,6 +559,13 @@
                         <small>激活当前原文和下一篇的原文</small>
                     </div>
                 </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="chapterPlotGuide">
+                    <div class="checkbox-content">
+                        <span>启用章节剧情遵循指南</span>
+                        <small>在章节内容前添加章节剧情遵循指南模板</small>
+                    </div>
+                </label>
             </div>
             
             <div class="buttons-container">
@@ -682,6 +689,7 @@
             formData.append('pattern', document.getElementById('pattern').value);
             formData.append('force', document.getElementById('force').checked);
             formData.append('preview', document.getElementById('preview').checked);
+            formData.append('chapterPlotGuide', document.getElementById('chapterPlotGuide').checked);
             
             loading.classList.add('active');
             convertBtn.disabled = true;

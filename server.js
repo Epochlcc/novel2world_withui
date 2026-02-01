@@ -59,6 +59,7 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
         const pattern = req.body.pattern || 'auto';
         const force = req.body.force === 'true';
         const preview = req.body.preview === 'true';
+        const chapterPlotGuide = req.body.chapterPlotGuide === 'true';
 
         if (!req.file) {
             return res.status(400).json({ error: '请上传文件' });
@@ -74,7 +75,7 @@ app.post('/api/convert', upload.single('file'), async (req, res) => {
 
         const processor = new NovelProcessor();
         processor.setPattern(pattern);
-        const result = await processor.processNovel(req.file.path, originalName, encoding, force, preview);
+        const result = await processor.processNovel(req.file.path, originalName, encoding, force, preview, chapterPlotGuide);
 
         res.json({
             success: true,

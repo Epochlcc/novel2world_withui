@@ -262,12 +262,41 @@ class NovelProcessor {
         return chapters;
     }
 
+    generateChapterPlotGuide(chapterIndex, chapterTitle, chapterContent, nextChapterContent = '') {
+        const guide = `<章节剧情>
+# 章节总结
+${chapterTitle}
 
+# 扮演指南
+本章节内容为小说原文，用于AI角色扮演时了解剧情背景。
+
+# 角色倾向
+请根据章节内容理解角色行为动机和性格特点。
+
+# 场景
+根据章节内容推断故事发生的地点和环境。
+
+# 事件
+本章节描述的事件是故事发展的一部分。
+
+# 参考对话/行为
+请参考章节中角色的对话和行为来理解角色性格。
+
+# 认知提醒
+章节内容为已知信息，扮演时应注意信息差。
+
+# 章节原文
+${chapterContent}
+${nextChapterContent ? `\n# 下回预告\n${nextChapterContent}` : ''}
+</章节剧情>`;
+
+        return guide;
+    }
 
     /**
      * 主处理函数
      */
-    async processNovel(filePath, originalFileName, encoding = 'utf-8', force = false, preview = false) {
+    async processNovel(filePath, originalFileName, encoding = 'utf-8', force = false, preview = false, chapterPlotGuide = false) {
         try {
             console.log('开始处理小说...');
             // 0. 确保规则已加载
@@ -311,6 +340,20 @@ class NovelProcessor {
             // 新章节编号和uid从maxUid+1递增
             for (let i = 0; i < this.chapters.length; i++) {
                 const chapter = this.chapters[i];
+                const nextChapter = i < this.chapters.length - 1 ? this.chapters[i + 1] : null;
+                let chapterContent;
+
+                if (chapterPlotGuide) {
+                    chapterContent = this.generateChapterPlotGuide(
+                        i + 1,
+                        chapter.title,
+                        chapter.content,
+                        nextChapter ? nextChapter.content : ''
+                    );
+                } else {
+                    chapterContent = `# ${chapter.title}\n${chapter.content}`;
+                }
+
                 const entryIdx = maxUid + i + 1; // 保证编号连续（如头部最大uid为1，则新章节从2开始）
                 entries[entryIdx] = {
                     uid: entryIdx,
@@ -319,7 +362,7 @@ class NovelProcessor {
                     ],
                     keysecondary: [],
                     comment: chapter.raw,
-                    content: `# ${chapter.title}\n${chapter.content}`,
+                    content: chapterContent,
                     constant: false,
                     vectorized: false,
                     selective: true,
@@ -382,13 +425,14 @@ class NovelProcessor {
 
 // 使用示例
 async function main() {
-    // 解析命令行参数 node novelProcessor.js 文件名.txt -e=encoding -f=force -p=preview
+    // 解析命令行参数 node novelProcessor.js 文件名.txt -e=encoding -f=force -p=preview -g=guide
     // encoding 可选 utf-8（默认）、gbk
     // force 可选 true、false（默认），表示是否无视小说文件不按顺序的章节编号
     // preview 可选，是否要下回预告功能（即绿灯激活当前原文和下一篇的原文）
+    // guide 可选，是否要章节剧情遵循指南（在章节前添加章节剧情遵循指南模板）
     const args = process.argv.slice(2);
     if (args.length < 1) {
-        console.error('请指定要处理的 txt 文件名，如: node novelProcessor.js 文件名.txt [-e=encoding] [-f=true] [-p=true]');
+        console.error('请指定要处理的 txt 文件名，如: node novelProcessor.js 文件名.txt [-e=encoding] [-f=true] [-p=true] [-g=true]');
         process.exit(1);
     }
     const txtFile = args[0];
@@ -403,11 +447,12 @@ async function main() {
     const encoding = argObj['e'] || 'utf-8';
     const force = argObj['f'] === 'true' || argObj['f'] === '1';
     const preview = argObj['p'] === 'true' || argObj['p'] === '1';
+    const chapterPlotGuide = argObj['g'] === 'true' || argObj['g'] === '1';
     // 创建处理器实例
     const processor = new NovelProcessor();
     // 处理小说文件
     try {
-        await processor.processNovel(txtFile, encoding, force, preview);
+        await processor.processNovel(txtFile, encoding, force, preview, chapterPlotGuide);
     } catch (error) {
         console.error('运行失败:', error.message);
     }
